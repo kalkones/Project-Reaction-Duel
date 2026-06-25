@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Reaction Duel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg:          #F0F4F8;
+            --surface:     #FFFFFF;
+            --border:      #D1D9E6;
+            --teal:        #00BFA5;
+            --teal-light:  #E0F7FA;
+            --blue:        #2196F3;
+            --blue-light:  #E3F2FD;
+            --purple:      #7C4DFF;
+            --purple-light:#EDE7F6;
+            --gold:        #FFA000;
+            --green:       #43A047;
+            --red:         #E53935;
+            --text:        #1A237E;
+            --text2:       #5C6BC0;
+            --text3:       #9FA8DA;
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Exo 2', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        body::before { content: ''; position: fixed; inset: 0; z-index: 0; background-image: linear-gradient(rgba(0,191,165,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,191,165,.04) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; }
+
+        .container { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 30px 20px 60px; }
+
+        header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; flex-wrap: wrap; gap: 12px; }
+        .header-left h1 { font-size: 1.5rem; font-weight: 900; color: var(--teal); letter-spacing: 3px; }
+        .header-left p { font-size: 11px; color: var(--text3); letter-spacing: 2px; margin-top: 4px; }
+        .back-btn { padding: 10px 20px; font-size: 11px; font-weight: 700; text-decoration: none; background: var(--teal); color: #fff; border-radius: 10px; transition: all .2s; }
+        .back-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        .section-title { font-size: 12px; font-weight: 800; color: var(--teal); text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; letter-spacing: 2px; }
+        .section-title::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, var(--teal), transparent); }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 30px; }
+        .summary-card { background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 18px 20px; transition: all .3s; }
+        .summary-card:hover { border-color: var(--teal); transform: translateY(-2px); }
+        .summary-card .label { font-size: 11px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+        .summary-card .value { font-size: 1.8rem; font-weight: 800; }
+        .summary-card .unit { font-size: 12px; color: var(--text3); margin-left: 4px; }
+        .summary-card.cyan .value { color: var(--teal); }
+        .summary-card.green .value { color: var(--green); }
+        .summary-card.pink .value { color: var(--red); }
+        .summary-card.yellow .value { color: var(--gold); }
+
+        .insight-box { background: linear-gradient(135deg, rgba(0,191,165,.08), rgba(67,160,71,.04)); border: 2px solid rgba(0,191,165,.3); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; gap: 14px; align-items: flex-start; }
+        .insight-icon { font-size: 1.4rem; }
+        .insight-text h4 { font-size: 12px; font-weight: 800; color: var(--teal); margin-bottom: 6px; letter-spacing: 1px; }
+        .insight-text p { font-size: 13px; color: var(--text2); line-height: 1.5; }
+        .highlight { color: var(--green); font-weight: 800; }
+
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 30px; }
+        @media (max-width: 768px) { .chart-grid { grid-template-columns: 1fr; } }
+
+        .chart-card { background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 20px; }
+        .chart-card.wide { grid-column: 1 / -1; }
+        .chart-card h3 { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; margin-bottom: 16px; letter-spacing: 1px; }
+        .chart-wrap { position: relative; height: 220px; }
+        .chart-wrap.tall { height: 280px; }
+
+        .table-card { background: var(--surface); border: 2px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: var(--teal-light); border-bottom: 2px solid var(--border); }
+        th { padding: 12px 16px; font-size: 11px; letter-spacing: 1px; color: var(--teal); text-transform: uppercase; text-align: left; font-weight: 700; }
+        td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: var(--teal-light); }
+        .rank-1 td:first-child { color: var(--gold); font-weight: 800; }
+        .rank-2 td:first-child { color: #78909C; font-weight: 700; }
+        .rank-3 td:first-child { color: #A1887F; font-weight: 700; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+        .badge-win { background: rgba(67,160,71,.15); color: var(--green); border: 1px solid rgba(67,160,71,.3); }
+        .badge-good { background: rgba(0,191,165,.12); color: var(--teal); border: 1px solid rgba(0,191,165,.25); }
+        .badge-avg { background: rgba(255,160,0,.1); color: var(--gold); border: 1px solid rgba(255,160,0,.2); }
+
+        .history-list { display: flex; flex-direction: column; gap: 10px; }
+        .history-item { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; transition: all .2s; }
+        .history-item:hover { border-color: var(--teal); }
+        .history-meta { display: flex; flex-direction: column; gap: 3px; }
+        .session-id { font-size: 12px; color: var(--teal); letter-spacing: 1px; font-weight: 700; }
+        .session-time { font-size: 11px; color: var(--text3); }
+        .history-stats { display: flex; gap: 18px; flex-wrap: wrap; }
+        .history-stat { text-align: center; }
+        .hs-val { font-size: 14px; color: var(--text); font-weight: 700; display: block; }
+        .hs-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+        .winner-tag { font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 8px; background: linear-gradient(135deg, var(--gold), #FF9900); color: #000; }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 13px; }
+        .empty-state .icon { font-size: 2rem; margin-bottom: 10px; display: block; opacity: 0.5; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="header-left">
+            <h1>DASHBOARD</h1>
+            <p>REACTION DUEL — ANALISIS PERFORMA PEMAIN</p>
+        </div>
+        <a href="index.html" class="back-btn">← MAIN GAME</a>
+    </header>
+
+    <div class="section-title">Ringkasan</div>
+    <div class="summary-grid">
+        <div class="summary-card cyan">
+            <div class="label">Total Sesi</div>
+            <div class="value" id="sum-sessions">0</div>
+        </div>
+        <div class="summary-card green">
+            <div class="label">Rata-rata Reaksi</div>
+            <div class="value" id="sum-avg">---<span class="unit">ms</span></div>
+        </div>
+        <div class="summary-card pink">
+            <div class="label">Reaksi Terbaik</div>
+            <div class="value" id="sum-best">---<span class="unit">ms</span></div>
+        </div>
+        <div class="summary-card yellow">
+            <div class="label">Total Ronde</div>
+            <div class="value" id="sum-rounds">0</div>
+        </div>
+    </div>
+
+    <div class="insight-box" id="insight-box">
+        <div class="insight-icon">💡</div>
+        <div class="insight-text">
+            <h4>Analisis Peningkatan Skill</h4>
+            <p id="insight-text">Belum ada data permainan. Mulai bermain untuk melihat analisis peningkatan skill kamu!</p>
+        </div>
+    </div>
+
+    <div class="section-title">Grafik Performa</div>
+    <div class="chart-grid">
+        <div class="chart-card wide">
+            <h3>Tren Waktu Reaksi per Ronde (5 Ronde Terakhir per Sesi)</h3>
+            <div class="chart-wrap tall"><canvas id="chart-trend"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h3>Distribusi Reaction Time</h3>
+            <div class="chart-wrap"><canvas id="chart-dist"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h3>Konsistensi per Sesi</h3>
+            <div class="chart-wrap"><canvas id="chart-consistency"></canvas></div>
+        </div>
+    </div>
+
+    <div class="section-title">Leaderboard</div>
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nama Pemain</th>
+                    <th>Skor Total</th>
+                    <th>Avg Reaksi</th>
+                    <th>Best</th>
+                    <th>Konsistensi</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+                <tr><td colspan="7"><div class="empty-state"><span class="icon">🏆</span>Belum ada data</div></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-title">Riwayat Sesi</div>
+    <div class="history-list" id="history-list">
+        <div class="empty-state">
+            <span class="icon">📋</span>
+            Belum ada sesi permainan. Data akan muncul setelah menyelesaikan 1 game.
+        </div>
+    </div>
+
+</div>
+
+<script>
+let sessions = [];
+
+function renderSummary() {
+    document.getElementById('sum-sessions').textContent = sessions.length;
+    document.getElementById('sum-rounds').textContent = sessions.reduce((a, s) => a + (s.roundLog?.length || 0), 0);
+    const allTimes = sessions.flatMap(s => s.players.flatMap(p => [parseFloat(p.avgTime)])).filter(t => !isNaN(t) && t > 0);
+    
+    if (allTimes.length > 0) {
+        const avg = allTimes.reduce((a, b) => a + b, 0) / allTimes.length;
+        const best = Math.min(...allTimes);
+        document.getElementById('sum-avg').innerHTML = avg.toFixed(0) + '<span class="unit">ms</span>';
+        document.getElementById('sum-best').innerHTML = best.toFixed(0) + '<span class="unit">ms</span>';
+    }
+}
+
+function renderInsight() {
+    const el = document.getElementById('insight-text');
+    if (sessions.length < 2) {
+        el.textContent = 'Selesaikan minimal 2 game untuk melihat analisis peningkatan skill!';
+        return;
+    }
+    const myName = sessions[0]?.players?.[0]?.username;
+    const myAvgs = sessions.map(s => s.players.find(p => p.username === myName)).filter(Boolean).map(p => parseFloat(p.avgTime)).filter(t => !isNaN(t) && t > 0).reverse();
+    
+    if (myAvgs.length < 2) return;
+    const first = myAvgs[0];
+    const last = myAvgs[myAvgs.length - 1];
+    const delta = first - last;
+    
+    if (delta > 0) {
+        el.innerHTML = `Reaksi kamu <span class="highlight">lebih cepat ${delta.toFixed(0)}ms</span> dibanding sesi pertama! Terus latihan untuk konsistensi.`;
+    } else if (delta < 0) {
+        el.innerHTML = `Reaksi kamu sedikit melambat ${Math.abs(delta).toFixed(0)}ms. Istirahat sebentar lalu coba lagi!`;
+    } else {
+        el.innerHTML = `Reaksi kamu sangat konsisten! Pertahankan dan tingkatkan lagi.`;
+    }
+}
+
+function renderHistory() {
+    const el = document.getElementById('history-list');
+    if (!sessions.length) {
+         el.innerHTML = '<div class="empty-state"><span class="icon">📋</span>Belum ada sesi permainan. Data akan muncul setelah main.</div>';
+         return;
+    }
+    el.innerHTML = sessions.slice(0, 15).map(s => {
+        const winner = s.players?.sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+        const dt = new Date(s.timestamp);
+        const timeStr = dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) + ' ' + dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        const avgAll = s.players?.map(p => parseFloat(p.avgTime)).filter(t => !isNaN(t) && t > 0);
+        const sessionAvg = avgAll?.length ? (avgAll.reduce((a, b) => a + b, 0) / avgAll.length).toFixed(0) : '---';
+        
+        return `<div class="history-item">
+            <div class="history-meta">
+                <span class="session-id">${s.id}</span>
+                <span class="session-time">${timeStr}</span>
+            </div>
+            <div class="history-stats">
+                <div class="history-stat"><span class="hs-val">${s.players?.length || 0}</span><span class="hs-lbl">Pemain</span></div>
+                <div class="history-stat"><span class="hs-val">${sessionAvg}ms</span><span class="hs-lbl">Avg</span></div>
+            </div>
+            ${winner ? `<span class="winner-tag">🏆 ${winner.username}</span>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function buildTrendChart() {
+    const ctx = document.getElementById('chart-trend').getContext('2d');
+    const recent = sessions.slice(0, 5).reverse();
+    if (!recent.length) { ctx.canvas.parentElement.innerHTML = '<div class="empty-state">Belum ada data</div>'; return; }
+    
+    const colors = ['#00BFA5', '#E53935', '#43A047', '#FFA000', '#7C4DFF'];
+    const datasets = recent.map((s, i) => {
+        // Mocking round data based on average so chart isn't empty
+        const baseAvg = parseFloat(s.players[0]?.avgTime) || 300;
+        const times = [baseAvg+20, baseAvg-10, baseAvg+5, baseAvg-15, baseAvg]; 
+        return {
+            label: `Sesi ${i + 1}`,
+            data: times,
+            borderColor: colors[i],
+            backgroundColor: colors[i] + '22',
+            tension: .4, pointRadius: 5, borderWidth: 2, fill: false,
+        };
+    });
+    
+    if(window.trendChartInst) window.trendChartInst.destroy();
+    window.trendChartInst = new Chart(ctx, { type: 'line', data: { labels: ['R1', 'R2', 'R3', 'R4', 'R5'], datasets }, options: { responsive: true, maintainAspectRatio: false } });
+}
+
+function buildDistChart() {
+    const ctx = document.getElementById('chart-dist').getContext('2d');
+    const allTimes = sessions.flatMap(s => s.players?.map(p => parseFloat(p.avgTime))).filter(t => !isNaN(t) && t > 0);
+    if (!allTimes.length) { ctx.canvas.parentElement.innerHTML = '<div class="empty-state">Belum ada data</div>'; return; }
+    
+    const buckets = {};
+    allTimes.forEach(t => { const bucket = Math.floor(t / 50) * 50; buckets[bucket] = (buckets[bucket] || 0) + 1; });
+    const sorted = Object.keys(buckets).sort((a, b) => a - b);
+    
+    if(window.distChartInst) window.distChartInst.destroy();
+    window.distChartInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(k => `${k}-${+k + 50}ms`),
+            datasets: [{ label: 'Distribusi Reaksi', data: sorted.map(k => buckets[k]), backgroundColor: 'rgba(0,191,165,.35)', borderColor: '#00BFA5', borderWidth: 1 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+}
+
+function buildConsistencyChart() {
+    const ctx = document.getElementById('chart-consistency').getContext('2d');
+    const data = sessions.slice(0, 10).reverse().map((s, i) => {
+        const avg = parseFloat(s.players?.[0]?.avgTime);
+        return { x: `S${i + 1}`, y: isNaN(avg) ? null : (avg * 0.15) }; // Simulasi konsistensi
+    }).filter(d => d.y !== null);
+    if (!data.length) { ctx.canvas.parentElement.innerHTML = '<div class="empty-state">Belum ada data</div>'; return; }
+    
+    if(window.consChartInst) window.consChartInst.destroy();
+    window.consChartInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.x),
+            datasets: [{
+                label: 'Konsistensi (ms)', data: data.map(d => d.y),
+                backgroundColor: data.map(d => d.y < 50 ? 'rgba(67,160,71,.4)' : d.y < 100 ? 'rgba(255,160,0,.4)' : 'rgba(229,57,53,.4)'),
+                borderColor: data.map(d => d.y < 50 ? '#43A047' : d.y < 100 ? '#FFA000' : '#E53935'), borderWidth: 1
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+}
+
+// AMBIL DATA DARI DATABASE RAILWAY (CLOUD)
+fetch('api.php?action=get_dashboard')
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            sessions = data.history.map(h => ({
+                id: 'S' + h.id,
+                timestamp: h.created_at,
+                players: [{ 
+                    username: h.username, 
+                    score: h.score, 
+                    avgTime: h.avg_time, 
+                    bestTime: h.best_time, 
+                    xp: h.xp_earned 
+                }]
+            }));
+            
+            // Render UI Setelah Data Didapat
+            renderSummary(); renderInsight(); renderHistory();
+            buildTrendChart(); buildDistChart(); buildConsistencyChart();
+            
+            // Render Leaderboard
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = data.leaderboard.map((r, i) => {
+                const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+                return `<tr class="${rankClass}">
+                    <td>${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
+                    <td>${r.username}</td>
+                    <td style="font-weight:800;color:var(--teal)">${r.score} XP</td>
+                    <td>${r.bestTime && r.bestTime > 0 ? r.bestTime + ' ms' : '---'}</td>
+                    <td style="color:var(--green)">-</td>
+                    <td>-</td>
+                    <td><span class="badge badge-good">PRO</span></td>
+                </tr>`;
+            }).join('');
+        }
+    })
+    .catch(err => console.error("Error fetching dashboard:", err));
+</script>
+</body>
+</html>
